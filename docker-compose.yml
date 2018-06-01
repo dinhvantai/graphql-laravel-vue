@@ -1,0 +1,71 @@
+version: '2'
+
+services:
+    application:
+        container_name: graphql_application
+        image: debian
+        volumes:
+            - ./:/var/www/laravel
+    workspace:
+        container_name: graphql_workspace
+        restart: always
+        image: dinhtai/laravel-workspace
+        volumes_from:
+            - application
+        tty: true
+    php-fpm:
+        container_name: graphql_php-fpm
+        restart: always
+        image: dinhtai/laravel-php-fpm
+        volumes_from:
+            - application
+        expose:
+            - "9000"
+        links:
+            - workspace
+    nginx:
+        container_name: graphql_nginx
+        restart: always
+        image: dinhtai/laravel-nginx
+        volumes_from:
+            - data
+            - logs
+            - application
+        ports:
+            - "8080:80"
+        links:
+            - php-fpm
+    data:
+        container_name: graphql_data
+        image: debian
+        volumes:
+            - .docker/mysql:/var/lib/mysql
+            - .docker/data:/data
+    logs:
+        container_name: graphql_logs
+        image: debian
+        volumes:
+            - .docker/logs/nginx:/var/log/nginx
+            - .docker/logs/mongodb:/var/log/mongodb
+    mysql:
+        container_name: graphql_mysql
+        restart: always
+        image: mysql:5.7
+        volumes_from:
+            - data
+            - logs
+        expose:
+            - "3306"
+        environment:
+            MYSQL_DATABASE: graphql
+            MYSQL_USER: graphql
+            MYSQL_PASSWORD: secret
+            MYSQL_ROOT_PASSWORD: root
+    redis:
+        container_name: graphql_redis
+        restart: always
+        image: redis
+        expose:
+            - "6379"
+        volumes_from:
+            - data
